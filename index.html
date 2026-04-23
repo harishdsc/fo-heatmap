@@ -37,12 +37,12 @@
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?output=csv";
 
 function getColor(change) {
-  if (change > 5) return "#006400";
-  if (change > 2) return "#228B22";
-  if (change > 0) return "#90EE90";
-  if (change > -2) return "#ffb3b3";
-  if (change > -5) return "#ff4d4d";
-  return "#8b0000";
+    if (change >= 5) return "#006400";   // dark green
+    if (change >= 2) return "#228B22";   // green
+    if (change > 0) return "#90EE90";    // light green
+    if (change > -2) return "#ffb3b3";   // light red
+    if (change > -5) return "#ff4d4d";   // red
+    return "#8b0000";                    // dark red
 }
 
 fetch(sheetURL)
@@ -51,12 +51,22 @@ fetch(sheetURL)
     const rows = data.split("\n").slice(1);
     const heatmap = document.getElementById("heatmap");
 
-    rows.forEach(row => {
+    let stocks = rows.map(row => {
         const [symbol, change] = row.split(",");
+        return {
+            symbol: symbol,
+            change: parseFloat(change)
+        };
+    });
+
+    // SORT highest % first
+    stocks.sort((a, b) => b.change - a.change);
+
+    stocks.forEach(stock => {
         const tile = document.createElement("div");
         tile.className = "tile";
-        tile.style.background = getColor(parseFloat(change));
-        tile.innerHTML = `${symbol}<br>${change}%`;
+        tile.style.background = getColor(stock.change);
+        tile.innerHTML = `${stock.symbol}<br>${stock.change}%`;
         heatmap.appendChild(tile);
     });
 });
