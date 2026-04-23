@@ -33,44 +33,85 @@
 
 <h2>F&O Heatmap</h2>
 <div class="heatmap" id="heatmap"></div>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>F&O Heatmap</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #111;
+      color: white;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    .heatmap {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+
+    .tile {
+      padding: 20px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: bold;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<h2>F&O Heatmap</h2>
+<div class="heatmap" id="heatmap"></div>
+
 <script>
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?output=csv";
 
 function getColor(change) {
-    if (change >= 5) return "#006400";   // dark green
-    if (change >= 2) return "#228B22";   // green
-    if (change > 0) return "#90EE90";    // light green
-    if (change > -2) return "#ffb3b3";   // light red
-    if (change > -5) return "#ff4d4d";   // red
-    return "#8b0000";                    // dark red
+    if (change >= 5) return "#006400";
+    if (change >= 2) return "#228B22";
+    if (change > 0) return "#90EE90";
+    if (change > -2) return "#ffb3b3";
+    if (change > -5) return "#ff4d4d";
+    return "#8b0000";
 }
 
 fetch(sheetURL)
 .then(res => res.text())
 .then(data => {
-    const rows = data.split("\n").slice(1);
-    const heatmap = document.getElementById("heatmap");
+    const rows = data.trim().split("\n").slice(1);
 
     let stocks = rows.map(row => {
         const [symbol, change] = row.split(",");
         return {
-            symbol: symbol,
+            symbol: symbol.trim(),
             change: parseFloat(change)
         };
     });
 
-    // SORT highest % first
+    // Sort descending: highest gainers first
     stocks.sort((a, b) => b.change - a.change);
+
+    const heatmap = document.getElementById("heatmap");
+    heatmap.innerHTML = "";
 
     stocks.forEach(stock => {
         const tile = document.createElement("div");
         tile.className = "tile";
-        tile.style.background = getColor(stock.change);
+        tile.style.backgroundColor = getColor(stock.change);
         tile.innerHTML = `${stock.symbol}<br>${stock.change}%`;
         heatmap.appendChild(tile);
     });
 });
-</script defer>>
+</script>
+
+</body>
+</html>
 
 </body>
 </html>
