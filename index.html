@@ -35,13 +35,23 @@
 <div class="heatmap" id="heatmap"></div>
 
 <script>
-const stocks = [
-  {symbol: "RELIANCE", change: 2.5},
-  {symbol: "TCS", change: -1.2},
-  {symbol: "SBIN", change: 4.8},
-  {symbol: "INFY", change: -3.1},
-  {symbol: "HDFCBANK", change: 1.4}
-];
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?output=csv";
+
+fetch(sheetURL)
+.then(res => res.text())
+.then(data => {
+    const rows = data.split("\n").slice(1);
+    const heatmap = document.getElementById("heatmap");
+
+    rows.forEach(row => {
+        const [symbol, change] = row.split(",");
+        const tile = document.createElement("div");
+        tile.className = "tile";
+        tile.style.background = getColor(parseFloat(change));
+        tile.innerHTML = `${symbol}<br>${change}%`;
+        heatmap.appendChild(tile);
+    });
+});
 
 function getColor(change) {
   if (change > 5) return "#006400";
