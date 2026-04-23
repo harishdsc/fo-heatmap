@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>F&O Heatmap</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #111;
+      color: white;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    .heatmap {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+
+    .tile {
+      padding: 20px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: bold;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<h2>F&O Heatmap</h2>
+<div class="heatmap" id="heatmap"></div>
+
+<script>
+const stocks = [
+  {symbol: "RELIANCE", change: 2.5},
+  {symbol: "TCS", change: -1.2},
+  {symbol: "SBIN", change: 4.8},
+  {symbol: "INFY", change: -3.1},
+  {symbol: "HDFCBANK", change: 1.4}
+];
+
+function getColor(change) {
+  if (change > 5) return "#006400";
+  if (change > 2) return "#228B22";
+  if (change > 0) return "#90EE90";
+  if (change > -2) return "#ffb3b3";
+  if (change > -5) return "#ff4d4d";
+  return "#8b0000";
+}
+
+const heatmap = document.getElementById("heatmap");
+
+stocks.forEach(stock => {
+  const tile = document.createElement("div");
+  tile.className = "tile";
+  tile.style.background = getColor(stock.change);
+  tile.innerHTML = `${stock.symbol}<br>${stock.change}%`;
+  heatmap.appendChild(tile);
+});
+</script>
+
+</body>
+</html>
