@@ -68,9 +68,8 @@
 
 <h2>F&O Heatmap</h2>
 <div class="heatmap" id="heatmap"></div>
-
 <script>
-const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?output=csv";
+const sheetURL = "https://docs.google.com/spreadsheets/d/193vN5jxcBdPDxOvKwyU5AlkQnV8AnD8HcjZkYg2_Iwc/edit?gid=0#gid=0";
 
 function getColor(change) {
     if (change >= 5) return "#006400";
@@ -81,33 +80,39 @@ function getColor(change) {
     return "#8b0000";
 }
 
-fetch(sheetURL)
-.then(res => res.text())
-.then(data => {
-    const rows = data.trim().split("\n").slice(1);
+function loadHeatmap() {
+    fetch(sheetURL + "&t=" + new Date().getTime())
+    .then(res => res.text())
+    .then(data => {
+        const rows = data.trim().split("\n").slice(1);
 
-    let stocks = rows.map(row => {
-        const [symbol, change] = row.split(",");
-        return {
-            symbol: symbol.trim(),
-            change: parseFloat(change)
-        };
+        let stocks = rows.map(row => {
+            const [symbol, change] = row.split(",");
+            return {
+                symbol: symbol.trim(),
+                change: parseFloat(change)
+            };
+        });
+
+        stocks.sort((a, b) => b.change - a.change);
+
+        const heatmap = document.getElementById("heatmap");
+        heatmap.innerHTML = "";
+
+        stocks.forEach(stock => {
+            const tile = document.createElement("div");
+            tile.className = "tile";
+            tile.style.backgroundColor = getColor(stock.change);
+            tile.innerHTML = `${stock.symbol}<br>${stock.change}%`;
+            heatmap.appendChild(tile);
+        });
     });
+}
 
-    // Sort descending: highest gainers first
-    stocks.sort((a, b) => b.change - a.change);
+loadHeatmap();
 
-    const heatmap = document.getElementById("heatmap");
-    heatmap.innerHTML = "";
-
-    stocks.forEach(stock => {
-        const tile = document.createElement("div");
-        tile.className = "tile";
-        tile.style.backgroundColor = getColor(stock.change);
-        tile.innerHTML = `${stock.symbol}<br>${stock.change}%`;
-        heatmap.appendChild(tile);
-    });
-});
+// Auto refresh every 30 sec
+setInterval(loadHeatmap, 30000);
 </script>
 
 </body>
