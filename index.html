@@ -37,6 +37,15 @@
 <script>
 const sheetURL = "https://docs.google.com/spreadsheets/d/193vN5jxcBdPDxOvKwyU5AlkQnV8AnD8HcjZkYg2_Iwc/edit?gid=0#gid=0";
 
+function getColor(change) {
+  if (change > 5) return "#006400";
+  if (change > 2) return "#228B22";
+  if (change > 0) return "#90EE90";
+  if (change > -2) return "#ffb3b3";
+  if (change > -5) return "#ff4d4d";
+  return "#8b0000";
+}
+
 fetch(sheetURL)
 .then(res => res.text())
 .then(data => {
