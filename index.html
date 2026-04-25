@@ -75,19 +75,31 @@ function loadSectorHeatmap() {
         const rows = data.trim().split("\n").slice(1);
 
         let sectors = [];
-        let niftyChange = 0;
+        let niftyChange = null;
 
         rows.forEach(row => {
-            const [sector, change] = row.split(",");
-            if (sector.trim().toUpperCase() === "NIFTY") {
-                niftyChange = parseFloat(change);
+            const cols = row.split(",");
+            const sector = cols[0]?.trim();
+            const change = parseFloat(cols[1]?.replace("%","").trim());
+
+            if (!sector || isNaN(change)) return;
+
+            if (sector.toUpperCase() === "NIFTY") {
+                niftyChange = change;
             } else {
                 sectors.push({
-                    sector: sector.trim(),
-                    perf: parseFloat(change) - niftyChange
+                    sector: sector,
+                    perf: change
                 });
             }
         });
+
+        if (niftyChange === null) return;
+
+        sectors = sectors.map(sec => ({
+            sector: sec.sector,
+            perf: sec.perf - niftyChange
+        }));
 
         sectors.sort((a, b) => b.perf - a.perf);
 
@@ -96,14 +108,13 @@ function loadSectorHeatmap() {
 
         sectors.forEach(sec => {
             const tile = document.createElement("div");
-           tile.className = "sector-tile";
+            tile.className = "sector-tile";
             tile.style.background = getColor(sec.perf);
             tile.innerHTML = `${sec.sector}<br>${sec.perf.toFixed(2)}%`;
             sectorHeatmap.appendChild(tile);
         });
     });
 }
-
 // ==================== STOCK HEATMAP ====================
 function loadHeatmap() {
     fetch(sheetURL + "&t=" + new Date().getTime())
