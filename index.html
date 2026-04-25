@@ -15,13 +15,22 @@
       margin-bottom: 10px;
     }
 
-    .sector-row {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 6px;
-      margin-bottom: 25px;
-    }
+ .sector-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
 
+.sector-tile {
+  padding: 8px 14px;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: bold;
+  color: black;
+  min-width: 90px;
+}
     .heatmap {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
@@ -87,7 +96,7 @@ function loadSectorHeatmap() {
 
         sectors.forEach(sec => {
             const tile = document.createElement("div");
-            tile.className = "tile";
+           tile.className = "sector-tile";
             tile.style.background = getColor(sec.perf);
             tile.innerHTML = `${sec.sector}<br>${sec.perf.toFixed(2)}%`;
             sectorHeatmap.appendChild(tile);
