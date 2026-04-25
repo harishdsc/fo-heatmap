@@ -12,6 +12,14 @@
 
     h2 {
       text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .sector-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      margin-bottom: 25px;
     }
 
     .heatmap {
@@ -31,46 +39,101 @@
 </head>
 <body>
 
+<h2>Sector Strength vs Nifty (7D)</h2>
+<div class="sector-row" id="sectorHeatmap"></div>
+
 <h2>F&O Heatmap</h2>
 <div class="heatmap" id="heatmap"></div>
 
 <script>
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?output=csv";
+const sectorURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?output=csv";
 
 function getColor(change) {
-    if (change >= 5) return "#006400";   // dark green
-    if (change >= 2) return "#228B22";   // green
-    if (change > 0) return "#90EE90";    // light green
-    if (change > -2) return "#ffb3b3";   // light red
-    if (change > -5) return "#ff4d4d";   // red
-    return "#8b0000";                    // dark red
+    if (change >= 5) return "#006400";
+    if (change >= 2) return "#228B22";
+    if (change > 0) return "#90EE90";
+    if (change > -2) return "#ffb3b3";
+    if (change > -5) return "#ff4d4d";
+    return "#8b0000";
 }
 
-fetch(sheetURL)
-.then(res => res.text())
-.then(data => {
-    const rows = data.split("\n").slice(1);
-    const heatmap = document.getElementById("heatmap");
+// ==================== SECTOR HEATMAP ====================
+function loadSectorHeatmap() {
+    fetch(sectorURL + "&t=" + new Date().getTime())
+    .then(res => res.text())
+    .then(data => {
+        const rows = data.trim().split("\n").slice(1);
 
-    let stocks = rows.map(row => {
-        const [symbol, change] = row.split(",");
-        return {
-            symbol: symbol,
-            change: parseFloat(change)
-        };
+        let sectors = [];
+        let niftyChange = 0;
+
+        rows.forEach(row => {
+            const [sector, change] = row.split(",");
+            if (sector.trim().toUpperCase() === "NIFTY") {
+                niftyChange = parseFloat(change);
+            } else {
+                sectors.push({
+                    sector: sector.trim(),
+                    perf: parseFloat(change) - niftyChange
+                });
+            }
+        });
+
+        sectors.sort((a, b) => b.perf - a.perf);
+
+        const sectorHeatmap = document.getElementById("sectorHeatmap");
+        sectorHeatmap.innerHTML = "";
+
+        sectors.forEach(sec => {
+            const tile = document.createElement("div");
+            tile.className = "tile";
+            tile.style.background = getColor(sec.perf);
+            tile.innerHTML = `${sec.sector}<br>${sec.perf.toFixed(2)}%`;
+            sectorHeatmap.appendChild(tile);
+        });
     });
+}
 
-    // SORT highest % first
-    stocks.sort((a, b) => b.change - a.change);
+// ==================== STOCK HEATMAP ====================
+function loadHeatmap() {
+    fetch(sheetURL + "&t=" + new Date().getTime())
+    .then(res => res.text())
+    .then(data => {
+        const rows = data.trim().split("\n").slice(1);
 
-    stocks.forEach(stock => {
-        const tile = document.createElement("div");
-        tile.className = "tile";
-        tile.style.background = getColor(stock.change);
-        tile.innerHTML = `${stock.symbol}<br>${stock.change}%`;
-        heatmap.appendChild(tile);
+        let stocks = rows.map(row => {
+            const [symbol, change] = row.split(",");
+            return {
+                symbol: symbol.trim(),
+                change: parseFloat(change)
+            };
+        });
+
+        stocks.sort((a, b) => b.change - a.change);
+
+        const heatmap = document.getElementById("heatmap");
+        heatmap.innerHTML = "";
+
+        stocks.forEach(stock => {
+            const tile = document.createElement("div");
+            tile.className = "tile";
+            tile.style.background = getColor(stock.change);
+            tile.innerHTML = `${stock.symbol}<br>${stock.change}%`;
+            heatmap.appendChild(tile);
+        });
     });
-});
+}
+
+// Initial load
+loadSectorHeatmap();
+loadHeatmap();
+
+// Auto refresh every 30 sec
+setInterval(() => {
+    loadSectorHeatmap();
+    loadHeatmap();
+}, 30000);
 </script>
 
 </body>
