@@ -99,7 +99,7 @@ function loadSectorHeatmap() {
             if (!sector || isNaN(change)) return;
 
             // Detect NIFTY row correctly
-            if (sector.toUpperCase().includes("NIFTY 50")) {
+            if (sector.toUpperCase().includes("NIFTY50")) {
                 niftyChange = change;
             } else {
                 sectors.push({
