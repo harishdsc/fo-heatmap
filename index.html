@@ -15,22 +15,13 @@
       margin-bottom: 10px;
     }
 
- .sector-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 20px;
-  justify-content: center;
-}
+    .sector-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      margin-bottom: 25px;
+    }
 
-.sector-tile {
-  padding: 8px 14px;
-  border-radius: 6px;
-  text-align: center;
-  font-weight: bold;
-  color: black;
-  min-width: 90px;
-}
     .heatmap {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
@@ -56,21 +47,7 @@
 
 <script>
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?output=csv";
-const sectorURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?gid=823250088&single=true&output=csv";
-
-function getColor(change) {
-    if (change >= 5) return "#006400";
-    if (change >= 2) return "#228B22";
-    if (change > 0) return "#90EE90";
-    if (change > -2) return "#ffb3b3";
-    if (change > -5) return "#ff4d4d";
-    return "#8b0000";
-}
-
-// ==================== SECTOR HEATMAP ====================
-<script>
-const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?output=csv";
-const sectorURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?gid=823250088&single=true&output=csv";
+const sectorURL = "YOUR_SECOND_SHEET_CSV_LINK";
 
 function getColor(change) {
     if (change >= 5) return "#006400";
@@ -92,27 +69,16 @@ function loadSectorHeatmap() {
         let niftyChange = 0;
 
         rows.forEach(row => {
-            const cols = row.split(",");
-            const sector = cols[0]?.trim();
-            const change = parseFloat(cols[1]?.replace("%","").trim());
-
-            if (!sector || isNaN(change)) return;
-
-            // Detect NIFTY row correctly
-            if (sector.toUpperCase().includes("NIFTY 50")) {
-                niftyChange = change;
+            const [sector, change] = row.split(",");
+            if (sector.trim().toUpperCase() === "NIFTY") {
+                niftyChange = parseFloat(change);
             } else {
                 sectors.push({
-                    sector: sector,
-                    perf: change
+                    sector: sector.trim(),
+                    perf: parseFloat(change) - niftyChange
                 });
             }
         });
-
-        sectors = sectors.map(sec => ({
-            sector: sec.sector,
-            perf: sec.perf - niftyChange
-        }));
 
         sectors.sort((a, b) => b.perf - a.perf);
 
@@ -121,14 +87,14 @@ function loadSectorHeatmap() {
 
         sectors.forEach(sec => {
             const tile = document.createElement("div");
-            tile.className = "sector-tile";
+            tile.className = "tile";
             tile.style.background = getColor(sec.perf);
             tile.innerHTML = `${sec.sector}<br>${sec.perf.toFixed(2)}%`;
             sectorHeatmap.appendChild(tile);
         });
     });
 }
-</script>
+
 // ==================== STOCK HEATMAP ====================
 function loadHeatmap() {
     fetch(sheetURL + "&t=" + new Date().getTime())
