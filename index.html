@@ -66,16 +66,16 @@ function loadSectorHeatmap() {
         const rows = data.trim().split("\n").slice(1);
 
         let sectors = [];
-        let niftyChange = 0;
+        let nifty50Change = 0;
 
         rows.forEach(row => {
             const [sector, change] = row.split(",");
-            if (sector.trim().toUpperCase() === "NIFTY") {
-                niftyChange = parseFloat(change);
+            if (sector.trim().toUpperCase() === "NIFTY 50") {
+                nifty50Change = parseFloat(change);
             } else {
                 sectors.push({
                     sector: sector.trim(),
-                    perf: parseFloat(change) - niftyChange
+                    perf: parseFloat(change) - nifty50Change
                 });
             }
         });
