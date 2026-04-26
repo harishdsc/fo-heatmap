@@ -1,112 +1,40 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>F&O Heatmap</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #000;
-      color: white;
-      padding: 15px;
-    }
-
-    h2 {
-      text-align: center;
-      margin: 20px 0 10px 0;
-      font-size: 1.1rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    /* Grid for both sections */
-    #sectorHeatmap, #heatmap {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 5px;
-      margin-bottom: 30px;
-    }
-
-    .tile {
-      padding: 15px 5px;
-      border-radius: 4px;
-      text-align: center;
-      font-weight: bold;
-      font-size: 10px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      min-height: 55px;
-      line-height: 1.2;
-    }
-
-    .tile span:first-child {
-      margin-bottom: 4px;
-      display: block;
-    }
-
-    /* Mobile Responsive - 3 columns on small screens */
-    @media (max-width: 600px) {
-      #sectorHeatmap, #heatmap {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
-  </style>
-</head>
-<body>
-
-<h2>Sector Strength vs Nifty (7D)</h2>
-<div id="sectorHeatmap"></div>
-
-<h2>F&O Heatmap</h2>
-<div id="heatmap"></div>
-
-<script>
-const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?output=csv";
-const sectorURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?gid=823250088&single=true&output=csv";
-
-function getColor(change) {
-    if (change >= 3) return { bg: "#006400", text: "white" };
-    if (change >= 1) return { bg: "#228B22", text: "white" };
-    if (change > 0)  return { bg: "#90EE90", text: "black" };
-    if (change > -1) return { bg: "#ffb3b3", text: "black" };
-    if (change > -3) return { bg: "#ff4d4d", text: "white" };
-    return { bg: "#8b0000", text: "white" };
-}
-
-// Fixed Sector Function
+// ==================== UPDATED SECTOR HEATMAP LOGIC ====================
 function loadSectorHeatmap() {
     fetch(sectorURL + "&t=" + new Date().getTime())
     .then(res => res.text())
     .then(data => {
-        const rows = data.trim().split(/\r?\n/).slice(1);
+        // Split rows and skip the first 3 rows (Title, Empty, and Header)
+        const rows = data.trim().split(/\r?\n/).slice(3); 
         let rawData = [];
-        let niftyChange = null;
+        let niftyChange = 0;
 
         rows.forEach(row => {
             const cols = row.split(",");
-            if(cols.length < 2) return;
             
-            const sector = cols[0].trim();
-            const change = parseFloat(cols[1].replace("%", "").trim());
+            // Column A is index 0 (Sector Name)
+            // Column E is index 4 (Change %)
+            const sector = cols[0]?.trim();
+            const changeStr = cols[4]?.replace("%", "").trim();
+            const change = parseFloat(changeStr);
 
-            if (!isNaN(change)) {
+            if (sector && !isNaN(change)) {
                 rawData.push({ sector, change });
+                
+                // Check for NIFTY 50 to use as baseline
                 if (sector.toUpperCase() === "NIFTY 50") {
                     niftyChange = change;
                 }
             }
         });
 
-        // Ensure we have a Nifty value to compare against
-        const reference = (niftyChange !== null) ? niftyChange : 0;
-
+        // Calculate relative strength (Sector % minus Nifty %)
         const sectors = rawData
             .filter(item => item.sector.toUpperCase() !== "NIFTY 50")
             .map(item => ({
                 name: item.sector,
-                perf: item.change - reference
+                perf: item.change - niftyChange 
             }))
-            .sort((a, b) => b.perf - a.perf);
+            .sort((a, b) => b.perf - a.perf); // Sort Descending
 
         const container = document.getElementById("sectorHeatmap");
         container.innerHTML = "";
@@ -121,50 +49,5 @@ function loadSectorHeatmap() {
             container.appendChild(tile);
         });
     })
-    .catch(err => console.error("Sector Load Error:", err));
+    .catch(err => console.error("Sector Error:", err));
 }
-
-function loadHeatmap() {
-    fetch(sheetURL + "&t=" + new Date().getTime())
-    .then(res => res.text())
-    .then(data => {
-        const rows = data.trim().split(/\r?\n/).slice(1);
-        let stocks = rows.map(row => {
-            const cols = row.split(",");
-            return {
-                symbol: cols[0]?.trim(),
-                change: parseFloat(cols[1]?.replace("%", "").trim())
-            };
-        }).filter(s => s.symbol && !isNaN(s.change));
-
-        stocks.sort((a, b) => b.change - a.change);
-
-        const container = document.getElementById("heatmap");
-        container.innerHTML = "";
-
-        stocks.forEach(stock => {
-            const colors = getColor(stock.change);
-            const tile = document.createElement("div");
-            tile.className = "tile";
-            tile.style.backgroundColor = colors.bg;
-            tile.style.color = colors.text;
-            tile.innerHTML = `<span>${stock.symbol}</span><span>${stock.change.toFixed(2)}%</span>`;
-            container.appendChild(tile);
-        });
-    })
-    .catch(err => console.error("Stock Load Error:", err));
-}
-
-// Run immediately
-loadSectorHeatmap();
-loadHeatmap();
-
-// Refresh
-setInterval(() => {
-    loadSectorHeatmap();
-    loadHeatmap();
-}, 30000);
-</script>
-
-</body>
-</html>
