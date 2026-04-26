@@ -1,53 +1,148 @@
-// ==================== UPDATED SECTOR HEATMAP LOGIC ====================
+<!DOCTYPE html>
+<html>
+<head>
+  <title>F&O Heatmap</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      padding: 10px;
+    }
+
+    h2 {
+      text-align: center;
+      margin: 15px 0;
+      font-size: 1.2rem;
+    }
+
+    .sector-row, .heatmap {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      margin-bottom: 25px;
+    }
+
+    .tile {
+      padding: 15px 5px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 10px;
+      color: black; /* Default text color like your first version */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 50px;
+    }
+
+    /* Mobile view */
+    @media (max-width: 600px) {
+      .sector-row, .heatmap { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<h2>Sector Strength vs Nifty (7D)</h2>
+<div class="sector-row" id="sectorHeatmap"></div>
+
+<h2>F&O Heatmap</h2>
+<div class="heatmap" id="heatmap"></div>
+
+<script>
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?output=csv";
+const sectorURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBqvl7N6mw6BPqwwWcVZeUwnrhpAcsCnxK6eEgG4eUlBDuwG8vHkja81WaZP8CWTDLwS7wmg4Vkbc_/pub?gid=823250088&single=true&output=csv";
+
+function getColor(change) {
+    if (change >= 2) return "#006400"; // Deep Green
+    if (change >= 0.5) return "#228B22"; // Green
+    if (change > 0) return "#90EE90"; // Light Green
+    if (change > -0.5) return "#ffb3b3"; // Light Red
+    if (change > -2) return "#ff4d4d"; // Red
+    return "#8b0000"; // Deep Red
+}
+
 function loadSectorHeatmap() {
     fetch(sectorURL + "&t=" + new Date().getTime())
     .then(res => res.text())
     .then(data => {
-        // Split rows and skip the first 3 rows (Title, Empty, and Header)
-        const rows = data.trim().split(/\r?\n/).slice(3); 
+        const rows = data.trim().split(/\r?\n/);
         let rawData = [];
         let niftyChange = 0;
 
         rows.forEach(row => {
             const cols = row.split(",");
-            
-            // Column A is index 0 (Sector Name)
-            // Column E is index 4 (Change %)
-            const sector = cols[0]?.trim();
-            const changeStr = cols[4]?.replace("%", "").trim();
-            const change = parseFloat(changeStr);
+            // Based on your image: Column A (0) is Sector, Column E (4) is Change%
+            const sectorName = cols[0]?.trim();
+            const val = cols[4]?.replace("%", "").trim();
+            const change = parseFloat(val);
 
-            if (sector && !isNaN(change)) {
-                rawData.push({ sector, change });
-                
-                // Check for NIFTY 50 to use as baseline
-                if (sector.toUpperCase() === "NIFTY 50") {
+            // Only process if it's a valid sector row (starts with NIFTY or HAL)
+            if (sectorName && !isNaN(change) && (sectorName.includes("NIFTY") || sectorName.includes("HAL"))) {
+                rawData.push({ name: sectorName, change: change });
+                if (sectorName.toUpperCase() === "NIFTY 50") {
                     niftyChange = change;
                 }
             }
         });
 
-        // Calculate relative strength (Sector % minus Nifty %)
         const sectors = rawData
-            .filter(item => item.sector.toUpperCase() !== "NIFTY 50")
+            .filter(item => item.name.toUpperCase() !== "NIFTY 50")
             .map(item => ({
-                name: item.sector,
-                perf: item.change - niftyChange 
+                name: item.name,
+                perf: item.change - niftyChange
             }))
-            .sort((a, b) => b.perf - a.perf); // Sort Descending
+            .sort((a, b) => b.perf - a.perf);
 
         const container = document.getElementById("sectorHeatmap");
         container.innerHTML = "";
 
         sectors.forEach(sec => {
-            const colors = getColor(sec.perf);
             const tile = document.createElement("div");
             tile.className = "tile";
-            tile.style.backgroundColor = colors.bg;
-            tile.style.color = colors.text;
-            tile.innerHTML = `<span>${sec.name}</span><span>${sec.perf.toFixed(2)}%</span>`;
+            tile.style.background = getColor(sec.perf);
+            // Auto-adjust text color for readability
+            tile.style.color = (sec.perf >= 0.5 || sec.perf <= -0.5) ? "white" : "black";
+            tile.innerHTML = `${sec.name}<br>${sec.perf.toFixed(2)}%`;
             container.appendChild(tile);
         });
-    })
-    .catch(err => console.error("Sector Error:", err));
+    });
 }
+
+function loadHeatmap() {
+    fetch(sheetURL + "&t=" + new Date().getTime())
+    .then(res => res.text())
+    .then(data => {
+        const rows = data.trim().split(/\r?\n/).slice(1);
+        let stocks = rows.map(row => {
+            const cols = row.split(",");
+            return {
+                symbol: cols[0]?.trim(),
+                change: parseFloat(cols[1]?.replace("%", "").trim())
+            };
+        }).filter(s => s.symbol && !isNaN(s.change));
+
+        stocks.sort((a, b) => b.change - a.change);
+
+        const container = document.getElementById("heatmap");
+        container.innerHTML = "";
+
+        stocks.forEach(stock => {
+            const tile = document.createElement("div");
+            tile.className = "tile";
+            tile.style.background = getColor(stock.change);
+            tile.style.color = (stock.change >= 0.5 || stock.change <= -0.5) ? "white" : "black";
+            tile.innerHTML = `${stock.symbol}<br>${stock.change.toFixed(2)}%`;
+            container.appendChild(tile);
+        });
+    });
+}
+
+loadSectorHeatmap();
+loadHeatmap();
+setInterval(() => { loadSectorHeatmap(); loadHeatmap(); }, 30000);
+</script>
+
+</body>
+</html>
