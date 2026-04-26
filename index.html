@@ -65,20 +65,34 @@ function loadSectorHeatmap() {
     .then(data => {
         const rows = data.trim().split("\n").slice(1);
 
-        let sectors = [];
-        let nifty50Change = 0;
+        let rawdata = [];
+        let niftyChange = null;
 
-        rows.forEach(row => {
-            const [sector, change] = row.split(",");
-            if (sector.trim().toUpperCase() === "NIFTY 50") {
-                nifty50Change = parseFloat(change);
-            } else {
-                sectors.push({
-                    sector: sector.trim(),
-                    perf: parseFloat(change) - nifty50Change
-                });
+       rows.forEach(row => {
+            const cols = row.split(",");
+            const sector = cols[0]?.trim();
+            const change = parseFloat(cols[1]?.replace("%","").trim());
+
+            if (!sector || isNaN(change)) return;
+
+            rawData.push({ sector, change });
+
+            if (sector.toUpperCase() === "NIFTY 50") {
+                niftyChange = change;
             }
         });
+
+        if (niftyChange === null) {
+            console.log("NIFTY 50 row not found");
+            return;
+        }
+
+        const sectors = rawData
+            .filter(item => item.sector.toUpperCase() !== "NIFTY 50")
+            .map(item => ({
+                sector: item.sector,
+                perf: item.change - niftyChange
+            }));
 
         sectors.sort((a, b) => b.perf - a.perf);
 
